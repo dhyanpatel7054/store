@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Product</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fff8f0;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            background: white;
+            padding: 20px 50px;
+            margin: auto;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        input, textarea, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            background-color: orange;
+            color: white;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: darkorange;
+        }
+
+        #image-preview {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .preview-img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            margin: 5px;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Add New Product</h2>
+        <form id="product-form">
+            <input type="text" id="name" placeholder="Product Name" required>
+            <textarea id="description" placeholder="Product Description" required></textarea>
+            <input type="number" id="price" placeholder="Price" required>
+            <input type="text" id="brand" placeholder="Brand Name" required>
+            <input type="number" id="stock" placeholder="Stock Quantity" required>
+
+            
+            <!-- Category Selection -->
+            <select id="category" required>
+                <option value="">Select Category</option>
+                <option value="TShirts">T-Shirts</option>
+                <option value="PoloShirts">Polo Shirts</option>
+                <option value="CasualShirts">Casual Shirts</option>
+                <option value="FormalShirts">Formal Shirts</option>
+                <option value="SweatshirtsHoodies">Sweatshirts & Hoodies</option>
+                <option value="Jeans">Jeans</option>
+                <option value="Jackets">Jackets</option>
+                <option value="Sneakers">Sneakers</option>
+                <option value="Loafers">Loafers</option>
+                <option value="FormalShoes">Formal Shoes</option>
+                <option value="Kurtas">Kurtas</option>
+                <option value="Lehengas">Lehengas</option>
+            </select>
+
+            <input type="file" id="photos" multiple accept="image/*">
+            <div id="image-preview"></div>
+            <button type="submit">Add Product</button>
+        </form>
+        <p id="message"></p>
+    </div>
+
+    <script>
+        document.getElementById("photos").addEventListener("change", function () {
+            const preview = document.getElementById("image-preview");
+            preview.innerHTML = ""; // Clear previous images
+
+            for (const file of this.files) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = document.createElement("img");
+                    img.src = e.target.result;
+                    img.classList.add("preview-img");
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById("product-form").addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const name = document.getElementById("name").value;
+            const description = document.getElementById("description").value;
+            const price = document.getElementById("price").value;
+            const brand = document.getElementById("brand").value;
+            const category = document.getElementById("category").value;
+            const photos = document.getElementById("photos").files;
+            const messageElement = document.getElementById("message");
+            const stock = document.getElementById("stock").value;
+            
+
+            // 🟠 Creating FormData to send files
+            const formData = new FormData();
+            formData.append("name", name);
+            formData.append("description", description);
+            formData.append("price", price);
+            formData.append("brand", brand);
+            formData.append("category", category);
+            formData.append("stock", stock);
+            for (const photo of photos) {
+                formData.append("photos", photo);
+            }
+
+            try {
+                const response = await fetch("/api/v1/admin/product/add", {
+                    method: "POST",
+                    body: formData, 
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    messageElement.style.color = "green";
+                    messageElement.innerText = "Product added successfully!";
+                    document.getElementById("product-form").reset();
+                    document.getElementById("image-preview").innerHTML = ""; 
+                } else {
+                    messageElement.style.color = "red";
+                    messageElement.innerText = data.message || "Something went wrong.";
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                messageElement.style.color = "red";
+                messageElement.innerText = "Failed to add product. Please try again.";
+            }
+        });
+    </script>
+
+</body>
+</html>

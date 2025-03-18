@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Keep the same head section as original -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        /* Keep the same styles */
+        body {
+            background: linear-gradient(135deg, #f8f9fa, #e3f2fd);
+            font-family: 'Poppins', sans-serif;
+        }#product-details {
+            padding: 2rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            margin: auto;
+        }
+        
+        #product-images img {
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            transition: transform 0.3s ease-in-out;
+            width: 100%;
+        }
+        
+        #product-images img:hover {
+            transform: scale(1.08);
+        }
+        
+        .product-name {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .product-price {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: orange;
+        }
+        
+        .btn-custom {
+            background:orange;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            transition: 0.3s;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .btn-custom:hover {
+            background: orange;
+        }
+        
+        .review-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+        }
+        /* ... rest of the styles ... */
+    </style>
+</head>
+<body>
+    <!-- Keep the same navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="#">Fashion Store</a>
+        </div>
+    </nav>
+
+    <div class="container mt-5" id="product-details">
+        <div class="row">
+            <div class="col-md-6" id="product-images"></div>
+            <div class="col-md-6 d-flex flex-column justify-content-center">
+                <h1 class="product-name" id="product-name"></h1>
+                <h3 class="product-price" id="product-price"></h3>
+                <p class="text-muted" id="product-category"></p>
+                <p id="product-description"></p>
+                
+                <label for="quantity" class="mt-2">Quantity:</label>
+                <input type="number" id="quantity" class="form-control w-50" value="1" min="1">
+
+                <!-- Updated buttons -->
+                <button class="btn btn-custom mt-3" onclick="addToCart()">Add to Cart</button>
+                <button class="btn btn-custom mt-3" onclick="checkout()">Checkout</button>
+            </div>
+        </div>
+
+        <!-- Keep the same reviews section -->
+        <div class="mt-5">
+            <h3 class="text-primary">Customer Reviews</h3>
+            <div id="reviews-container"></div>
+            
+            <div class="mt-4">
+                <h4>Write a Review</h4>
+                <input type="number" id="rating" class="form-control w-25" placeholder="Rating (1-5)" min="1" max="5">
+                <textarea class="form-control mt-2" id="comment" placeholder="Write your review..." rows="4"></textarea>
+                <button class="btn btn-custom mt-3" onclick="submitReview()">Submit Review</button>
+                <div id="reviewMessage" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cart functionality
+        let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+        function saveCart() {
+            localStorage.setItem("cart", JSON.stringify(cart));
+        }
+
+        function loadCart() {
+            cart = JSON.parse(localStorage.getItem("cart")) || [];
+        }
+
+        // Add to cart function
+        async function addToCart() {
+    const productId = new URLSearchParams(window.location.search).get("id");
+    const quantity = parseInt(document.getElementById("quantity").value, 10);
+
+    try {
+        const response = await fetch('/api/v1/cart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ productId, quantity })
+        });
+
+        // ✅ Ensure response is JSON before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const errorText = await response.text();
+            throw new Error(`Invalid response: ${errorText.substring(0, 100)}`);
+        }
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to add to cart');
+        }
+
+        alert('✅ Product added to cart!');
+    } catch (error) {
+        console.error('❌ Error:', error);
+        alert(error.message);
+    }
+}
+
+        function checkout() {
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    if (cart.length === 0) {
+        alert("❌ Your cart is empty!");
+        return;
+    }
+
+    window.location.href = "/static/cart.html"; // ✅ Redirects to cart page
+}
+
+        // Keep the rest of the original functions (loadProduct, loadReviews, submitReview)
+        async function loadProduct() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('id');
+
+    try {
+        const response = await fetch(`/api/v1/product/${productId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            const product = data.product;
+            document.getElementById('product-name').textContent = product.name;
+            document.getElementById('product-price').textContent = `₹${product.price}`;
+            document.getElementById('product-category').textContent = product.category;
+            document.getElementById('product-description').textContent = product.description;
+
+            const imagesContainer = document.getElementById('product-images');
+            imagesContainer.innerHTML = ""; // Clear previous images
+
+            if (product.photos && product.photos.length > 0) {
+                product.photos.forEach(photo => {
+                    const img = document.createElement('img');
+                    img.src = photo.secure_url || "/static/no-image.png"; // ✅ Load from Cloudinary with fallback
+                    img.className = 'img-fluid shadow-sm';
+                    img.alt = product.name;
+                    img.onerror = function () {
+                        this.src = "/static/no-image.png"; // ✅ Fallback on error
+                    };
+                    imagesContainer.appendChild(img);
+                });
+            } else {
+                imagesContainer.innerHTML = `<img src="/static/no-image.png" class="img-fluid shadow-sm" alt="No image available">`; // ✅ Default image
+            }
+
+            loadReviews(productId);
+        }
+    } catch (error) {
+        console.error('Error loading product:', error);
+        alert('❌ Product not found');
+    }
+}
+
+        async function loadReviews(productId) {
+            try {
+                const response = await fetch(`/api/v1/reviews?productId=${productId}`);
+                const data = await response.json();
+                
+                const reviewsHtml = data.reviews.map(review => `
+                    <div class="review-card">
+                        <strong>${review.name}</strong> (${review.rating}⭐)
+                        <p>${review.comment}</p>
+                        <small>${new Date(review.createdAt).toLocaleDateString()}</small>
+                    </div>
+                `).join('');
+                
+                document.getElementById('reviews-container').innerHTML = reviewsHtml;
+            } catch (error) {
+                console.error('Error loading reviews:', error);
+            }
+        }
+
+        async function submitReview() {
+            const rating = document.getElementById('rating').value;
+            const comment = document.getElementById('comment').value;
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('id');
+
+            try {
+                const response = await fetch('/api/v1/reviews', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rating, comment, productId })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('reviewMessage').innerHTML = `<div class="alert alert-success">Review submitted!</div>`;
+                    loadReviews(productId);
+                }
+            } catch (error) {
+                document.getElementById('reviewMessage').innerHTML = `<div class="alert alert-danger">Error submitting review.</div>`;
+            }
+        }
+
+        // Updated window load
+        window.onload = function() {
+            loadProduct();
+            loadCart();
+        };
+    </script>
+</body>
+</html>

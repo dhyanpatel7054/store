@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .order-card {
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            transition: 0.3s;
+        }
+        .order-card:hover {
+            transform: scale(1.02);
+        }
+        .status-badge {
+            font-size: 14px;
+            padding: 6px 12px;
+            border-radius: 5px;
+        }
+        .status-pending { background-color: #ffc107; color: #fff; }
+        .status-completed { background-color: #28a745; color: #fff; }
+        .status-cancelled { background-color: #dc3545; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2 class="text-center mb-4">🛒 My Orders</h2>
+        <div id="ordersContainer">
+            <p class="text-center">Loading your orders...</p>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "login.html"; // Redirect if not logged in
+        }
+
+        async function fetchOrders() {
+            try {
+                const response = await axios.get("/api/v1/myorder", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                const orders = response.data.orders;
+                const ordersContainer = document.getElementById("ordersContainer");
+                ordersContainer.innerHTML = ""; // Clear loading text
+
+                if (orders.length === 0) {
+                    ordersContainer.innerHTML = "<p class='text-center text-muted'>No orders found.</p>";
+                    return;
+                }
+
+                // Generate order cards dynamically
+                orders.forEach(order => {
+                    const orderCard = document.createElement("div");
+                    orderCard.classList.add("card", "mb-3", "order-card");
+
+                    let statusClass = "status-pending";
+                    if (order.status === "Completed") statusClass = "status-completed";
+                    if (order.status === "Cancelled") statusClass = "status-cancelled";
+
+                    orderCard.innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">Order ID: <span class="text-primary">${order._id}</span></h5>
+                            <p class="card-text"><strong>Total Amount:</strong> ₹${order.totalAmount}</p>
+                            <p class="card-text"><strong>Ordered At:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+                            <span class="status-badge ${statusClass}">${order.status}</span>
+                        </div>
+                    `;
+                    ordersContainer.appendChild(orderCard);
+                });
+
+            } catch (error) {
+                document.getElementById("ordersContainer").innerHTML = `<p class="text-danger text-center">Error: ${error.response?.data?.message || "Failed to fetch orders."}</p>`;
+            }
+        }
+
+        fetchOrders();
+    </script>
+</body>
+</html>
